@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'clustershell'
+project = u'clustershell-test'
 copyright = u'2017, Stephane Thiell'
 
 # The version info for the project you're documenting, acts as replacement for

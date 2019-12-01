@@ -16,8 +16,8 @@ farms! Special thanks to the many of you that have sent us feedback on GitHub!
 Version 1.8.3
 ^^^^^^^^^^^^^
 
-This version contains a few bug fixes and improvements:
-
+This version contains a few bug fixes and improvements which mainly affect the
+tree mode:
 
 * (security) use safe yaml load variant to avoid warning from :class:`.NodeUtils`
 
@@ -28,8 +28,9 @@ This version contains a few bug fixes and improvements:
 
 * (tree) improve error reporting from gateways
 
-* `:ref:`clush-tool`: support ``--worker=ssh`` when topology.conf is present
-  to explitly disable tree mode.
+* :ref:`clush-tool`: now properly handles ``--worker=ssh`` when
+  :ref:`clush-tree-enabling <topology.conf>`: is present to explitly disable
+  tree mode.
 
 For more details, please have a look at `GitHub Issues for 1.8.3 milestone`_.
 

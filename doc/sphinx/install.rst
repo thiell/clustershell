@@ -41,21 +41,26 @@ ClusterShell should remain easily available to everyone. Hopefully, packages are
 currently available for Fedora Linux, RHEL (through EPEL repositories), Debian
 and Arch Linux.
 
-Python compatitility matrix
+Python compatibility matrix
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-+-----------------+---------------+----------------------------------------+
-| Operating       | System Python | Python version used   | Suffixed       |
-| System          | version       | by clustershell tools | tools          |
-+=================+===============+========================================+
-| RHEL/CentOS 6   | Python 2.6    | Python 2.6            | Python 3.4     |
-+-----------------+--------------------------------------------------------+
-| RHEL/CentOS 7   | Python 2.7    | Python 2.7            | Python 3.4/3.6 |
-+-----------------+--------------------------------------------------------+
-| RHEL/CentOS 8   | Python 3.6    | Python 3.6            |                |
-+-----------------+--------------------------------------------------------+
-| Fedora 31       | Python 3.8    | Python 3.8            |                |
-+-----------------+--------------------------------------------------------+
+The table below provides an overview of the Python version supported and
+packaged by ClusterShell in different Linux distribution::
+
++-----------------+----------------------------+---------------------------+
+| Operating       | System Python version      | Alternate Python support  |
+| System          | used by clustershell tools | packaged (suffixed tools) |
++=================+============================+==========+================+
+| RHEL/CentOS 6   | Python 2.6                 | Python 3.4                |
++-----------------+----------------------------+---------------------------+
+| RHEL/CentOS 7   | Python 2.7                 | Python 3.4/3.6            |
++-----------------+----------------------------+---------------------------+
+| RHEL/CentOS 8   | Python 3.6                 |                           |
++-----------------+----------------------------+---------------------------+
+| Fedora 30       | Python 2.7                 | Python 3.7                |
++-----------------+----------------------------+---------------------------+
+| Fedora 31       | Python 3.8                 |                           |
++-----------------+----------------------------+---------------------------+
 
 Fedora
 ^^^^^^

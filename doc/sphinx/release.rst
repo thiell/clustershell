@@ -19,7 +19,7 @@ Version 1.8.3
 This version contains a few bug fixes and improvements which mainly affect the
 tree mode:
 
-* use safe yaml load variant to avoid warning from :class:`.NodeUtils`
+* use safe yaml load variant to avoid warning from :class:`.YAMLGroupLoader`
 
 * tree mode: propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment
   variable to remote gateways (multi-hop)

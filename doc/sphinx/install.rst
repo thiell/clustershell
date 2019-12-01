@@ -6,9 +6,9 @@ Installation
 ClusterShell is distributed in several packages. On RedHat-like OS, we
 recommend to use the RPM package (.rpm) distribution.
 
-As a system software for cluster, ClusterShell is primarily made for
+As system software for cluster, ClusterShell is primarily made for
 system-wide installation to be used by system administrators. However,
-changes have been made so that it's now easy to install it without
+changes have been made so that it's now possible to install it without
 root access (see :ref:`install-pip-user`).
 
 
@@ -26,9 +26,10 @@ For instance, ClusterShell is known to work on the following operating systems:
 
 * GNU/Linux RHEL or CentOS 6 (Python 2.6)
 * GNU/Linux RHEL or CentOS 7 (Python 2.7)
-* GNU/Linux Fedora 22 to 26 (Python 2.6 or 2.7)
-* GNU/Linux Debian wheezy and above (Python 2.7)
-* Mac OS X 10.8+ (Python 2.6 or 2.7)
+* GNU/Linux RHEL or CentOS 8 (Python 3.6)
+* GNU/Linux Fedora 22 and above (Python 2.6+)
+* GNU/Linux Debian wheezy and above (Python 2.7+)
+* Mac OS X 10.8+ (Python 2.6+)
 
 Distribution
 ------------
@@ -43,7 +44,7 @@ and Arch Linux.
 Fedora
 ^^^^^^
 
-At the time of writing, ClusterShell |version| is available on Fedora 26
+At the time of writing, ClusterShell |version| is available on Fedora 31
 (releases being maintained by the Fedora Project).
 
 Install ClusterShell from *Fedora Updates*
@@ -71,8 +72,9 @@ using the following command::
 
     $ dnf install python3-clustershell
 
-Python 3 versions of the tools are installed as *tool-pythonversion*, like
-``clush-3.6``, ``cluset-3.6`` or ``nodeset-3.6`` on Fedora 26.
+Prior to Fedora 31, Python 3 versions of the tools are installed as
+*tool-pythonversion*, like ``clush-3.6``, ``cluset-3.6`` or ``nodeset-3.6``.
+On Fedora 31 and onwards, only Python 3 is supported.
 
 Install ClusterShell from Fedora Updates Testing
 """"""""""""""""""""""""""""""""""""""""""""""""
@@ -95,7 +97,7 @@ Red Hat Enterprise Linux (and CentOS)
 ClusterShell packages are maintained on Extra Packages for Enterprise Linux
 `EPEL`_ for Red Hat Enterprise Linux (RHEL) and its compatible spinoffs such
 as CentOS. At the time of writing, ClusterShell |version| is available on
-EPEL 6 and 7.
+EPEL 6, 7 and 8.
 
 
 Install ClusterShell from EPEL
@@ -112,17 +114,22 @@ Then, the ClusterShell installation procedure is quite the same as for
 
     $ yum install clustershell
 
-Python 2 module and tools are installed by default. If interested in Python 3
-development, simply install the additional ClusterShell's Python 3 subpackage
-using the following command::
+On EPEL 6 and 7, the Python 2 modules and tools are installed by default. If
+interested in Python 3 support, simply install the additional ClusterShell's
+Python 3 subpackage using the following command::
 
     $ yum install python34-clustershell
 
-.. note:: The Python 3 subpackage is named ``python34-clustershell`` on
-          EPEL 6 and 7, instead of ``python3-clustershell``.
+.. note:: The Python 3 subpackage is named ``python34-clustershell`` or
+          ``python36-clustershell`` on EPEL 6 and 7, instead of
+          ``python3-clustershell``.
 
 Python 3 versions of the tools are installed as *tool-pythonversion*, like
 ``clush-3.4``, ``cluset-3.4`` or ``nodeset-3.4`` on EPEL 6 and 7.
+
+On EPEL 8, however, Python 3 is the system default, and Python 2 has been
+deprecated. Thus only Python 3 is supported by the EPEL clustershell packages,
+the tools are using Python 3 by default and are not suffixed anymore.
 
 openSUSE
 ^^^^^^^^

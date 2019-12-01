@@ -44,8 +44,8 @@ and Arch Linux.
 Python compatibility matrix
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The table below provides an overview of the Python version supported and
-packaged by ClusterShell in different Linux distribution::
+The table below provides an overview of the Python versions supported and
+packaged in different Linux distributions:
 
 +-----------------+----------------------------+---------------------------+
 | Operating       | System Python version      | Alternate Python support  |

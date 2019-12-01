@@ -13,6 +13,26 @@ farms! Special thanks to the many of you that have sent us feedback on GitHub!
 
 .. warning:: Support for Python 2.5 and below has been dropped in this version.
 
+Version 1.8.3
+^^^^^^^^^^^^^
+
+This version contains a few bug fixes and improvements:
+
+
+* (security) use safe yaml load variant to avoid warning from :class:`.NodeUtils`
+
+* (tree) propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment variable
+  to remote gateways (multi-hop)
+
+* (tree) fix defect to properly close channel when worker has aborted
+
+* (tree) improve error reporting from gateways
+
+* `:ref:`clush-tool`: support ``--worker=ssh`` when topology.conf is present
+  to explitly disable tree mode.
+
+For more details, please have a look at `GitHub Issues for 1.8.3 milestone`_.
+
 Version 1.8.2
 ^^^^^^^^^^^^^
 
@@ -537,6 +557,7 @@ Please see :ref:`install-pip-user`.
 .. _GitHub Issues for 1.8 milestone: https://github.com/cea-hpc/clustershell/issues?utf8=%E2%9C%93&q=is%3Aissue+milestone%3A1.8
 .. _GitHub Issues for 1.8.1 milestone: https://github.com/cea-hpc/clustershell/issues?utf8=%E2%9C%93&q=is%3Aissue+milestone%3A1.8.1
 .. _GitHub Issues for 1.8.2 milestone: https://github.com/cea-hpc/clustershell/issues?utf8=%E2%9C%93&q=is%3Aissue+milestone%3A1.8.2
+.. _GitHub Issues for 1.8.3 milestone: https://github.com/cea-hpc/clustershell/issues?utf8=%E2%9C%93&q=is%3Aissue+milestone%3A1.8.3
 .. _LGPL v2.1+: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html
 .. _CeCILL-C V1: http://www.cecill.info/licences/Licence_CeCILL-C_V1-en.html
 .. _xCAT: https://xcat.org/

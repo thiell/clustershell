@@ -19,14 +19,14 @@ Version 1.8.3
 This version contains a few bug fixes and improvements which mainly affect the
 tree mode:
 
-* (security) use safe yaml load variant to avoid warning from :class:`.NodeUtils`
+* use safe yaml load variant to avoid warning from :class:`.NodeUtils`
 
-* (tree) propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment variable
-  to remote gateways (multi-hop)
+* tree mode: propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment
+  variable to remote gateways (multi-hop)
 
-* (tree) fix defect to properly close channel when worker has aborted
+* tree mode: fix defect to properly close channel when worker has aborted
 
-* (tree) improve error reporting from gateways
+* tree mode: improve error reporting from gateways
 
 * :ref:`clush-tool`: now properly handles ``--worker=ssh`` when
   :ref:`clush-tree-enabling <topology.conf>`: is present to explitly disable

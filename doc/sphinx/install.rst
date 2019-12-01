@@ -44,23 +44,29 @@ and Arch Linux.
 Python compatibility matrix
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The table below provides an overview of the Python versions supported and
-packaged in different Linux distributions:
+The table below provides an overview of the Python versions supported by
+ClusterShell in different Linux distributions:
 
-+-----------------+----------------------------+---------------------------+
-| Operating       | System Python version      | Alternate Python support  |
-| System          | used by clustershell tools | packaged (suffixed tools) |
-+=================+============================+==========+================+
-| RHEL/CentOS 6   | Python 2.6                 | Python 3.4                |
-+-----------------+----------------------------+---------------------------+
-| RHEL/CentOS 7   | Python 2.7                 | Python 3.4/3.6            |
-+-----------------+----------------------------+---------------------------+
-| RHEL/CentOS 8   | Python 3.6                 |                           |
-+-----------------+----------------------------+---------------------------+
-| Fedora 30       | Python 2.7                 | Python 3.7                |
-+-----------------+----------------------------+---------------------------+
-| Fedora 31       | Python 3.8                 |                           |
-+-----------------+----------------------------+---------------------------+
++------------------+----------------------------+---------------------------+
+| Operating        | System Python version used | Alternate Python support  |
+| System           | by the clustershell tools  | packaged (suffixed tools) |
++==================+============================+==========+================+
+| RHEL/CentOS 6    | Python 2.6                 | Python 3.4                |
++------------------+----------------------------+---------------------------+
+| RHEL/CentOS 7    | Python 2.7                 | Python 3.4/3.6            |
++------------------+----------------------------+---------------------------+
+| RHEL/CentOS 8    | *Python 3.6*               |                           |
++------------------+----------------------------+---------------------------+
+| Fedora 30        | Python 2.7                 | Python 3.7                |
++------------------+----------------------------+---------------------------+
+| Fedora 31        | *Python 3.8*               |                           |
++------------------+----------------------------+---------------------------+
+| SUSE SLE_12      | Python 2.7                 | Python 3.4                |
++------------------+----------------------------+---------------------------+
+| SUSE SLE_15      | Python 2.7                 | Python 3.6                |
++------------------+----------------------------+---------------------------+
+| openSUSE Leap 15 | Python 2.7                 | Python 3.6                |
++------------------+----------------------------+---------------------------+
 
 Fedora
 ^^^^^^

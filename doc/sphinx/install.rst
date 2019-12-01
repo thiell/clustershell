@@ -11,6 +11,7 @@ system-wide installation to be used by system administrators. However,
 changes have been made so that it's now possible to install it without
 root access (see :ref:`install-pip-user`).
 
+.. _install-requirements:
 
 Requirements
 ------------
@@ -41,11 +42,16 @@ ClusterShell should remain easily available to everyone. Hopefully, packages are
 currently available for Fedora Linux, RHEL (through EPEL repositories), Debian
 and Arch Linux.
 
-Python compatibility matrix
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _install-python-support-matrix:
 
-The table below provides some examples of Python versions supported by ClusterShell
-in common Linux distributions:
+Python support overview
+^^^^^^^^^^^^^^^^^^^^^^^
+
+As seen in :ref:`install-requirements`, ClusterShell supports Python 2.6 and
+onwards, at least up to Python 3.8 at the time of writing.
+
+The table below provides some examples of the versions of Python supported by
+ClusterShell packages found in common Linux distributions:
 
 +------------------+----------------------------+-----------------------------------+
 | Operating        | System Python version used | Alternate Python support          |

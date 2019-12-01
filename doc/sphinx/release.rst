@@ -20,7 +20,7 @@ This version contains a few bug fixes and improvements, mostly affecting the
 :ref:`tree mode <clush-tree>`:
 
 * propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment variable to
-  remote gateways (multi-hop)
+  remote gateways
 
 * fix defect to properly close gateway channel when worker has aborted
 
@@ -28,7 +28,7 @@ This version contains a few bug fixes and improvements, mostly affecting the
 
 * :ref:`clush-tool`: now properly handles ``--worker=ssh`` when
   :ref:`topology.conf <clush-tree-enabling>` is present to explicitly disable
-  tree mode.
+  :ref:`tree mode <clush-tree>`
 
 * use safe yaml load variant to avoid warning from :class:`.YAMLGroupLoader`
 

@@ -42,7 +42,7 @@ ClusterShell should remain easily available to everyone. Hopefully, packages are
 currently available for Fedora Linux, RHEL (through EPEL repositories), Debian
 and Arch Linux.
 
-.. _install-python-support-matrix:
+.. _install-python-support-overview:
 
 Python support overview
 ^^^^^^^^^^^^^^^^^^^^^^^

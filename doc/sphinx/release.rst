@@ -20,7 +20,7 @@ This version contains a few bug fixes and improvements, mostly affecting the
 :ref:`tree mode <clush-tree>`:
 
 * propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment variable to
-  remote gateways
+  remote gateways (see :ref:`clush-tree-python`)
 
 * fix defect to properly close gateway channel when worker has aborted
 
@@ -34,6 +34,10 @@ This version contains a few bug fixes and improvements, mostly affecting the
 
 
 For more details, please have a look at `GitHub Issues for 1.8.3 milestone`_.
+
+We also added a Python support matrix to the documentation for the main Linux
+distributions, which can be found in :ref:`install-python-support-overview`.
+
 
 Version 1.8.2
 ^^^^^^^^^^^^^

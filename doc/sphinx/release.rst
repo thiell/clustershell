@@ -6,7 +6,7 @@ Release Notes
 Version 1.8
 -----------
 
-This adaptive release is now compatible with both Python 2 and Python 3.
+This adaptive major release is now compatible with both Python 2 and Python 3.
 
 We hope this release will help you manage your clusters, server farms or cloud
 farms! Special thanks to the many of you that have sent us feedback on GitHub!
@@ -16,18 +16,18 @@ farms! Special thanks to the many of you that have sent us feedback on GitHub!
 Version 1.8.3
 ^^^^^^^^^^^^^
 
-This version contains a few bug fixes and improvements, most of them affecting
-the :ref:`tree mode <clush-tree>`:
+This version contains a few bug fixes and improvements, mostly affecting the
+:ref:`tree mode <clush-tree>`:
 
 * propagate ``CLUSTERSHELL_GW_PYTHON_EXECUTABLE`` environment variable to
   remote gateways (multi-hop)
 
-* fix defect to properly close channel when worker has aborted
+* fix defect to properly close gateway channel when worker has aborted
 
 * improve error reporting from gateways
 
 * :ref:`clush-tool`: now properly handles ``--worker=ssh`` when
-  :ref:`clush-tree-enabling <topology.conf>`: is present to explitly disable
+  :ref:`topology.conf <clush-tree-enabling>` is present to explicitly disable
   tree mode.
 
 * use safe yaml load variant to avoid warning from :class:`.YAMLGroupLoader`

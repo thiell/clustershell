@@ -401,6 +401,12 @@ class TreeWorker(DistantWorker):
 
         self._check_fini(previous_gateway)
         self._target_count -= len(targets)
+
+        if self.eh is not None:
+            routing_arg = { "event": "redistribute",
+                            "failed_gateway": previous_gateway,
+                            "targets": targets }
+            self.eh._ev_routing(self, routing_arg)
         self._launch(targets)
 
     def _engine_clients(self):
@@ -486,7 +492,7 @@ class TreeWorker(DistantWorker):
     def _check_ini(self):
         self.logger.debug("TreeWorker: _check_ini (%d, %d)", self._start_count,
                           self._child_count)
-        if self.eh and self._start_count >= self._child_count:
+        if self.eh is not None and self._start_count >= self._child_count:
             # this part is called once
             self.eh.ev_start(self)
             # Blindly generate pickup events: this could maybe be improved, for

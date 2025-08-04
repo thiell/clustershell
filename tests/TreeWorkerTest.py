@@ -2,21 +2,27 @@
 Unit test for ClusterShell.Worker.TreeWorker
 
 This unit test requires working ssh connections to the following
-local addresses: $HOSTNAME, localhost, 127.0.0.[2-4]
+local addresses: $HOSTNAME, localhost, 127.0.0.[2-6]
 
 You can use the following options in ~/.ssh/config:
 
     Host your_hostname localhost 127.0.0.*
       StrictHostKeyChecking no
       LogLevel ERROR
+
+The hostname mock command available in tests/bin needs to be
+used on the remote nodes (tests/bin added to PATH in .bashrc).
 """
 
 import os
 from os.path import basename, join
+import sys
 import unittest
 import warnings
 
 from ClusterShell.NodeSet import NodeSet
+from ClusterShell.Propagation import RouteResolvingError
+from ClusterShell.Event import EventHandler
 from ClusterShell.Task import task_self, task_terminate, task_wait
 from ClusterShell.Task import Task, task_cleanup
 from ClusterShell.Topology import TopologyGraph
@@ -27,13 +33,14 @@ from TLib import HOSTNAME, make_temp_dir, make_temp_file, make_temp_filename
 
 NODE_HEAD = HOSTNAME
 NODE_GATEWAY = 'localhost'
-NODE_DISTANT = '127.0.0.2'
-NODE_DISTANT2 = '127.0.0.[2-3]'
-NODE_DIRECT = '127.0.0.4'
-NODE_FOREIGN = '127.0.0.5'
+NODE_GATEWAY2 = '127.0.0.[1-2]'
+NODE_DISTANT = '127.0.0.3'
+NODE_DISTANT2 = '127.0.0.[3-4]'
+NODE_DIRECT = '127.0.0.5'
+NODE_FOREIGN = '127.0.0.6'
 
 
-class TEventHandlerBase(object):
+class TEventHandlerBase(EventHandler):
     """Base Test class for EventHandler"""
 
     def __init__(self):
@@ -174,6 +181,38 @@ class TreeWorkerTest(unittest.TestCase):
         self.assertEqual(teh.ev_timedout_cnt, 0)
         self.assertEqual(teh.ev_close_cnt, 1)
         self.assertEqual(teh.last_read, b'Lorem Ipsum')
+
+    def test_tree_run_event_multiple(self):
+        """test multiple tree runs with EventHandler (1.8+)"""
+        # Test for GH#566
+        teh = TEventHandler()
+        self.task.run('echo Lorem Ipsum Unum', nodes=NODE_DISTANT, handler=teh)
+        self.assertEqual(teh.ev_start_cnt, 1)
+        self.assertEqual(teh.ev_pickup_cnt, 1)
+        self.assertEqual(teh.ev_read_cnt, 1)
+        self.assertEqual(teh.ev_written_cnt, 0)
+        self.assertEqual(teh.ev_hup_cnt, 1)
+        self.assertEqual(teh.ev_timedout_cnt, 0)
+        self.assertEqual(teh.ev_close_cnt, 1)
+        self.assertEqual(teh.last_read, b'Lorem Ipsum Unum')
+        self.task.run('echo Lorem Ipsum Duo', nodes=NODE_DISTANT, handler=teh)
+        self.assertEqual(teh.ev_start_cnt, 2)
+        self.assertEqual(teh.ev_pickup_cnt, 2)
+        self.assertEqual(teh.ev_read_cnt, 2)
+        self.assertEqual(teh.ev_written_cnt, 0)
+        self.assertEqual(teh.ev_hup_cnt, 2)
+        self.assertEqual(teh.ev_timedout_cnt, 0)
+        self.assertEqual(teh.ev_close_cnt, 2)
+        self.assertEqual(teh.last_read, b'Lorem Ipsum Duo')
+        self.task.run('echo Lorem Ipsum Tres', nodes=NODE_DISTANT, handler=teh)
+        self.assertEqual(teh.ev_start_cnt, 3)
+        self.assertEqual(teh.ev_pickup_cnt, 3)
+        self.assertEqual(teh.ev_read_cnt, 3)
+        self.assertEqual(teh.ev_written_cnt, 0)
+        self.assertEqual(teh.ev_hup_cnt, 3)
+        self.assertEqual(teh.ev_timedout_cnt, 0)
+        self.assertEqual(teh.ev_close_cnt, 3)
+        self.assertEqual(teh.last_read, b'Lorem Ipsum Tres')
 
     def test_tree_run_event_timeout(self):
         """test simple tree run with EventHandler (1.8+) with timeout"""
@@ -519,3 +558,94 @@ class TreeWorkerTest(unittest.TestCase):
     def test_tree_worker_name_compat(self):
         """test TreeWorker former name (WorkerTree)"""
         self.assertEqual(TreeWorker, WorkerTree)
+
+    def test_tree_gateway_bogus_single(self):
+        """test tree run with bogus single gateway"""
+        # Part of GH#566
+        teh = TEventHandler()
+        os.environ['CLUSTERSHELL_GW_PYTHON_EXECUTABLE'] = '/test/bogus'
+        try:
+            self.assertRaises(RouteResolvingError, self.task.run, 'echo Lorem Ipsum',
+                              nodes=NODE_DISTANT, handler=teh)
+        finally:
+            del os.environ['CLUSTERSHELL_GW_PYTHON_EXECUTABLE']
+
+
+class TRoutingEventHandler(TEventHandler):
+    """Test Routing Event Handler"""
+
+    def __init__(self):
+        TEventHandler.__init__(self)
+        self.routing_events = []
+
+    def _ev_routing(self, worker, arg):
+        self.routing_events.append((worker, arg))
+        del os.environ['CLUSTERSHELL_GW_PYTHON_EXECUTABLE']
+        # restore a functional invoke_gateway command
+        invoke_gw_args = []
+        for envname in ('PYTHONPATH',
+                        'CLUSTERSHELL_GW_PYTHON_EXECUTABLE',
+                        'CLUSTERSHELL_GW_LOG_DIR',
+                        'CLUSTERSHELL_GW_LOG_LEVEL',
+                        'CLUSTERSHELL_GW_B64_LINE_LENGTH'):
+            envval = os.getenv(envname)
+            if envval:
+                invoke_gw_args.append("%s=%s" % (envname, envval))
+        invoke_gw_args.append(basename(sys.executable))
+        invoke_gw_args.extend(['-m', 'ClusterShell.Gateway', '-Bu'])
+        worker.invoke_gateway = ' '.join(invoke_gw_args)
+
+
+@unittest.skipIf(HOSTNAME == 'localhost', "does not work with hostname set to 'localhost'")
+class TreeWorkerTest2(unittest.TestCase):
+    """
+    TreeWorkerTest2: test TreeWorker with 2 gateways
+
+        NODE_HEAD -> NODE_GATEWAY2 -> NODE_DISTANT2
+
+    Connections are really established to the target and command results
+    are tested.
+    """
+
+    def setUp(self):
+        """setup test environment topology"""
+        task_terminate()  # ideally shouldn't be needed...
+        self.task = task_self()
+        # set task topology
+        graph = TopologyGraph()
+        graph.add_route(NodeSet(HOSTNAME), NodeSet(NODE_GATEWAY2))
+        graph.add_route(NodeSet(NODE_GATEWAY2), NodeSet(NODE_DISTANT2))
+        self.task.topology = graph.to_tree(HOSTNAME)
+
+    def tearDown(self):
+        """clean up test environment"""
+        task_terminate()
+        self.task = None
+
+    def test_tree_gateway_bogus_redistribute(self):
+        """test tree run redistribute with bogus gateway"""
+        teh = TRoutingEventHandler()
+        # use this trick to make the first gateway fail
+        os.environ['CLUSTERSHELL_GW_PYTHON_EXECUTABLE'] = '/test/bogus'
+        try:
+            self.task.run('echo Lorem Ipsum', nodes=NODE_DISTANT, handler=teh)
+        finally:
+            if 'CLUSTERSHELL_GW_PYTHON_EXECUTABLE' in os.environ:
+                del os.environ['CLUSTERSHELL_GW_PYTHON_EXECUTABLE']
+        self.assertEqual(len(teh.routing_events), 1)
+        worker, arg = teh.routing_events[0]
+        self.assertEqual(worker.command, "echo Lorem Ipsum")
+        self.assertEqual(arg["event"], "redistribute")
+        self.assertEqual(str(arg["targets"]), NODE_DISTANT)
+        # event handler checks
+        self.assertEqual(teh.ev_start_cnt, 1)
+        self.assertEqual(teh.ev_pickup_cnt, 1)
+        # read_cnt += 1 for gateway error on stderr (so currently not fully
+        # transparent to the user)
+        # and +1 for stdout via other gateway (successful)
+        self.assertEqual(teh.ev_read_cnt, 2)
+        self.assertEqual(teh.ev_written_cnt, 0)
+        self.assertEqual(teh.ev_hup_cnt, 1)
+        self.assertEqual(teh.ev_timedout_cnt, 0)
+        self.assertEqual(teh.ev_close_cnt, 1)
+        self.assertEqual(teh.last_read, b'Lorem Ipsum')

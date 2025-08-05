@@ -139,13 +139,18 @@ class XMLReader(ContentHandler):
             StdErrMessage.ident: StdErrMessage,
             RetcodeMessage.ident: RetcodeMessage,
             TimeoutMessage.ident: TimeoutMessage,
+            RoutingMessage.ident: RoutingMessage,
         }
         try:
             msg_type = attributes['type']
             # select the good constructor
             ctor = ctors_map[msg_type]
         except KeyError:
-            raise MessageProcessingError('Unknown message type')
+            if msg_type:
+                ex_msg = "Unknown message type %s" % msg_type
+            else:
+                ex_msg = "Cannot determine message type"
+            raise MessageProcessingError(ex_msg)
         # build message with its attributes
         self._draft = ctor()
         self._draft.selfbuild(attributes)
@@ -243,7 +248,8 @@ class Channel(EventHandler):
             self._close()
             return
         except MessageProcessingError as ex:
-            self.logger.error("MessageProcessingError: %s", ex)
+            self.logger.error("Channel:MessageProcessingError: %s (initiator=%s)",
+                              ex, self.initiator)
             if self.initiator:
                 self.recv(StdErrMessage(node, str(ex)))
             else:
@@ -458,6 +464,19 @@ class TimeoutMessage(RoutedMessageBase):
         RoutedMessageBase.__init__(self, srcid)
         self.attr.update({'nodes': str})
         self.nodes = nodes
+
+class RoutingMessage(RoutedMessageBase):
+    """container message for routing notification"""
+    ident = 'RTR'
+
+    def __init__(self, event='', gateway='', targets='', srcid=0):
+        """
+        """
+        RoutedMessageBase.__init__(self, srcid)
+        self.attr.update({'event': str, 'gateway': str, 'targets': str})
+        self.event = event
+        self.gateway = gateway
+        self.targets = targets
 
 class StartMessage(Message):
     """message indicating the start of a channel communication"""

@@ -134,6 +134,13 @@ class OutputHandler(EventHandler):
         if self._runtimer:
             self._runtimer.eh.bytes_written += size
 
+    def _ev_routing(self, worker, arg):
+        prefix = Display.COLOR_STDERR_FMT % "clush: "
+        if "reroute" in arg.get("event", ""):
+            info_fmt = "rerouting commands for {targets} due to the failure " \
+                       "of gateway {gateway}"
+            self._display.vprint_err(VERB_STD, prefix + info_fmt.format(**arg))
+
 class DirectOutputHandler(OutputHandler):
     """Direct output event handler class."""
 

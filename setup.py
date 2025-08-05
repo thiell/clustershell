@@ -23,7 +23,7 @@ import os
 from setuptools import setup, find_packages
 
 
-VERSION = '1.9.3'
+VERSION = '1.9.3.90'
 
 CFGDIR = 'etc/clustershell'
 MANDIR = 'share/man'

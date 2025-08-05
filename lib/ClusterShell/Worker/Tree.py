@@ -403,8 +403,8 @@ class TreeWorker(DistantWorker):
         self._target_count -= len(targets)
 
         if self.eh is not None:
-            routing_arg = { "event": "redistribute",
-                            "failed_gateway": previous_gateway,
+            routing_arg = { "event": "reroute",
+                            "gateway": previous_gateway,
                             "targets": targets }
             self.eh._ev_routing(self, routing_arg)
         self._launch(targets)

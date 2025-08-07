@@ -142,14 +142,14 @@ class XMLReader(ContentHandler):
             RoutingMessage.ident: RoutingMessage,
         }
         try:
-            msg_type = attributes['type']
+            msg_type = attributes.get('type')
             # select the good constructor
             ctor = ctors_map[msg_type]
         except KeyError:
             if msg_type:
                 ex_msg = "Unknown message type %s" % msg_type
             else:
-                ex_msg = "Cannot determine message type"
+                ex_msg = "Unknown message with no type"
             raise MessageProcessingError(ex_msg)
         # build message with its attributes
         self._draft = ctor()
@@ -251,7 +251,9 @@ class Channel(EventHandler):
             self.logger.error("Channel:MessageProcessingError: %s (initiator=%s)",
                               ex, self.initiator)
             if self.initiator:
-                self.recv(StdErrMessage(node, str(ex)))
+                # handle that as if we received an error message
+                self.logger.error("recv(StdErrMessage) node=%s ex=%s", node, ex)
+                self.recv(StdErrMessage(node, str(ex).encode()))
             else:
                 # target, not initiator: we can send an error message back
                 self.send(ErrorMessage(str(ex)))

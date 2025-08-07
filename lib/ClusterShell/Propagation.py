@@ -424,3 +424,6 @@ class PropagationChannel(Channel):
                 self.logger.debug("channel was not set up: redistributing...")
                 for mw in set(self.task.gateways[gateway][1]):
                     mw._relaunch(gateway)
+
+        # update Task that we are closing
+        worker.task._pchannel_closing(gateway, worker)

@@ -1384,8 +1384,17 @@ class Task(object):
                 logger.debug("pchannel_release: destroying channel %s",
                             chanworker.eh)
                 chanworker.abort()
-                # delete gateway reference
-                del self.gateways[gwstr]
+
+    def _pchannel_closing(self, gateway, chanworker):
+        logger = logging.getLogger(__name__)
+        logger.debug("pchannel_closing: %s", gateway)
+        gwstr = str(gateway)
+        chwrk, metaworkers = self.gateways[gwstr]
+        assert chwrk is chanworker, (chwrk, chanworker)
+        metaworkers_copy = list(metaworkers)
+        for mw in metaworkers_copy:
+            mw._gateway_abort(gwstr)
+        del self.gateways[gwstr]
 
 
 def task_self(defaults=None):

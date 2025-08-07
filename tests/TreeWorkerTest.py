@@ -635,7 +635,7 @@ class TreeWorkerTest2(unittest.TestCase):
         self.assertEqual(len(teh.routing_events), 1)
         worker, arg = teh.routing_events[0]
         self.assertEqual(worker.command, "echo Lorem Ipsum")
-        self.assertEqual(arg["event"], "redistribute")
+        self.assertEqual(arg["event"], "reroute")
         self.assertEqual(str(arg["targets"]), NODE_DISTANT)
         # event handler checks
         self.assertEqual(teh.ev_start_cnt, 1)

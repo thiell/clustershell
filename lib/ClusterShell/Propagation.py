@@ -29,12 +29,12 @@ import logging
 
 from ClusterShell.Defaults import DEFAULTS
 from ClusterShell.NodeSet import NodeSet
-from ClusterShell.Communication import Channel
-from ClusterShell.Communication import ControlMessage, StdOutMessage
-from ClusterShell.Communication import StdErrMessage, RetcodeMessage
-from ClusterShell.Communication import StartMessage, EndMessage
-from ClusterShell.Communication import RoutedMessageBase, ErrorMessage
-from ClusterShell.Communication import ConfigurationMessage, TimeoutMessage
+from ClusterShell.Communication import (Channel, ControlMessage, StdOutMessage,
+                                        StdErrMessage, RetcodeMessage,
+                                        StartMessage, EndMessage,
+                                        RoutedMessageBase, ErrorMessage,
+                                        ConfigurationMessage, TimeoutMessage,
+                                        RoutingMessage)
 from ClusterShell.Topology import TopologyError
 
 
@@ -378,6 +378,13 @@ class PropagationChannel(Channel):
                 self.logger.debug("TimeoutMessage for %s", msg.nodes)
                 for node in NodeSet(msg.nodes):
                     metaworker._on_remote_node_timeout(node, self.gateway)
+            elif msg.type == RoutingMessage.ident:
+                self.logger.debug("RoutingMessage for %s (gw %s)", msg.targets,
+                                  msg.gateway)
+                routing_arg = { "event": msg.event,
+                                "targets": msg.targets,
+                                "gateway": msg.gateway }
+                metaworker._on_routing_event(routing_arg)
         elif msg.type == ErrorMessage.ident:
             # tree runtime error, could generate a new event later
             raise TopologyError("%s: %s" % (self.gateway, msg.reason))

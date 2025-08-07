@@ -489,6 +489,10 @@ class TreeWorker(DistantWorker):
         self._close_count += 1
         self._has_timeout = True
 
+    def _on_routing_event(self, arg):
+        self.logger.debug("_on_routing_event %s", arg)
+        self.eh._ev_routing(self, arg)
+
     def _check_ini(self):
         self.logger.debug("TreeWorker: _check_ini (%d, %d)", self._start_count,
                           self._child_count)

@@ -14,133 +14,138 @@ jobs:
             python-version: '3.7'
     name: Tests with Python ${{ matrix.python-version }}
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5.2.0
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python
+        uses: actions/setup-python@v5.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install ClusterShell
-      run: |
-        set -euxo pipefail
-        python -m pip install --upgrade pip
-        python -m pip -V
-        pip install -v .
+      - name: Install ClusterShell
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip
+          python -m pip -V
+          pip install -v .
 
-    - name: Install test deps (nose2 + coverage)
-      run: |
-        set -euxo pipefail
-        pip install -v nose2 coverage
+      - name: Install test deps (nose2 + coverage)
+        run: |
+          set -euxo pipefail
+          pip install -v nose2 coverage
 
-    - name: Ensure tests/ is importable for nose2 discovery
-      run: |
-        set -euxo pipefail
-        test -d tests
-        # Required by unittest/nose2 discovery in many setups
-        test -f tests/__init__.py || : > tests/__init__.py
-        ls -la tests/__init__.py
+      - name: Ensure tests/ is importable for nose2/unittest discovery
+        run: |
+          set -euxo pipefail
+          test -d tests
+          test -f tests/__init__.py || : > tests/__init__.py
+          ls -la tests/__init__.py
 
-    - name: Show unittest.cfg (debug)
-      run: |
-        set -euxo pipefail
-        test -f unittest.cfg
-        echo "=== unittest.cfg ==="
-        cat unittest.cfg
+      - name: Ensure unittest.cfg is correct (nose2 discovery)
+        run: |
+          set -euxo pipefail
+          cat > unittest.cfg <<'EOF'
+          [nose2]
+          start-dir = tests
+          top-level-directory = .
+          verbosity = 2
+          plugins = nose2.plugins.loader.discovery
 
-    - name: Allow us to SSH passwordless to localhost
-      run: |
-        set -euxo pipefail
-        chmod og-rw ~
-        ssh-keygen -f ~/.ssh/id_rsa -N ""
-        cp ~/.ssh/{id_rsa.pub,authorized_keys}
+          [discovery]
+          pattern = *Test.py
+          EOF
+          echo "=== unittest.cfg ==="
+          cat unittest.cfg
 
-    - name: Avoid ssh "known hosts" warnings
-      run: |
-        set -euxo pipefail
-        printf '%s\n    %s\n    %s\n' 'Host *' 'StrictHostKeyChecking no' 'LogLevel ERROR' >> ~/.ssh/config
+      - name: Allow us to SSH passwordless to localhost
+        run: |
+          set -euxo pipefail
+          chmod og-rw ~
+          ssh-keygen -f ~/.ssh/id_rsa -N ""
+          cp ~/.ssh/{id_rsa.pub,authorized_keys}
 
-    - name: Set Python paths when sshing for gateway tests
-      run: |
-        set -euxo pipefail
-        sed -i "1iexport CLUSTERSHELL_GW_PYTHON_EXECUTABLE=$(which python)" ~/.bashrc
-        sed -i "2iexport PYTHONPATH=\$PYTHONPATH:$(realpath $pythonLocation/lib/python*/site-packages)" ~/.bashrc
-        head -2 ~/.bashrc
+      - name: Avoid ssh "known hosts" warnings
+        run: |
+          set -euxo pipefail
+          printf '%s\n    %s\n    %s\n' 'Host *' 'StrictHostKeyChecking no' 'LogLevel ERROR' >> ~/.ssh/config
 
-    - name: Install pdsh to test WorkerPdsh
-      run: |
-        set -euxo pipefail
-        sudo apt-get update
-        sudo apt-get -y install pdsh
-        sudo sh -c 'echo ssh > /etc/pdsh/rcmd_default'
+      - name: Set Python paths when sshing for gateway tests
+        run: |
+          set -euxo pipefail
+          sed -i "1iexport CLUSTERSHELL_GW_PYTHON_EXECUTABLE=$(which python)" ~/.bashrc
+          sed -i "2iexport PYTHONPATH=\$PYTHONPATH:$(realpath $pythonLocation/lib/python*/site-packages)" ~/.bashrc
+          head -2 ~/.bashrc
 
-    - name: Add tests/bin to remote PATH
-      run: |
-        set -euxo pipefail
-        sed -i "1iexport PATH=$PWD/tests/bin:\$PATH" ~/.bashrc
-        head -1 ~/.bashrc
-        ssh 127.0.0.2 which hostname
-        ssh 127.0.0.2 hostname
+      - name: Install pdsh to test WorkerPdsh
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get -y install pdsh
+          sudo sh -c 'echo ssh > /etc/pdsh/rcmd_default'
 
-	- name: Debug unittest discovery (pre-flight)
-	  run: |
-		set -euxo pipefail
-		export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
-		python - <<'PY'
-		import unittest
-		suite = unittest.TestLoader().discover("tests", pattern="*Test.py", top_level_dir=".")
-		count = 0
-		def walk(s):
-		  nonlocal count
-		  for t in s:
-			if isinstance(t, unittest.TestSuite):
-			  walk(t)
-			else:
-			  count += 1
-		walk(suite)
-		print("unittest discovered:", count)
-		PY
+      - name: Add tests/bin to remote PATH
+        run: |
+          set -euxo pipefail
+          sed -i "1iexport PATH=$PWD/tests/bin:\$PATH" ~/.bashrc
+          head -1 ~/.bashrc
+          ssh 127.0.0.2 which hostname
+          ssh 127.0.0.2 hostname
 
-	- name: Run tests (coverage + nose2, explicit config) (capture output)
-	  run: |
-		set -euxo pipefail
-		python -VV
-		pwd
-		ls -la unittest.cfg
-		echo "=== unittest.cfg ==="
-		cat unittest.cfg
+      - name: Debug unittest discovery (pre-flight)
+        run: |
+          set -euxo pipefail
+          export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
+          python - <<'PY'
+          import unittest
+          suite = unittest.TestLoader().discover("tests", pattern="*Test.py", top_level_dir=".")
+          count = 0
+          def walk(s):
+              global count
+              for t in s:
+                  if isinstance(t, unittest.TestSuite):
+                      walk(t)
+                  else:
+                      count += 1
+          walk(suite)
+          print("unittest discovered:", count)
+          PY
 
-		export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
-		rm -f .coverage .coverage.* || true
+      - name: Run tests (coverage + nose2, explicit config) (capture output)
+        run: |
+          set -euxo pipefail
+          python -VV
+          pwd
+          ls -la
+          ls -la unittest.cfg
+          echo "=== unittest.cfg ==="
+          cat unittest.cfg
+          export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
+          rm -f .coverage .coverage.* || true
+          coverage run --branch --source=ClusterShell -m nose2 \
+            --config unittest.cfg --no-user-config \
+            --log-level DEBUG \
+            -v 2>&1 | tee nose2.log
+          coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
 
-		# Run with DEBUG to confirm config+plugin activation
-		coverage run --branch --source=ClusterShell -m nose2 \
-		  --config unittest.cfg --no-user-config \
-		  --log-level DEBUG \
-		  -v 2>&1 | tee nose2.log
+      - name: Debug (environment + packaging)
+        if: always()
+        run: |
+          set -euxo pipefail
+          python -VV
+          which python
+          python -m pip -V
+          python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
+          python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
+          echo "=== PYTHONPATH ==="
+          python - <<'PY'
+          import os
+          print(os.environ.get("PYTHONPATH", ""))
+          PY
 
-		coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
-
-		- name: Debug (environment + packaging)
-		  if: always()
-		  run: |
-			set -euxo pipefail
-			python -VV
-			which python
-			python -m pip -V
-			python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
-			python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
-			echo "=== PYTHONPATH ==="
-			python - <<'PY'
-			import os
-			print(os.environ.get("PYTHONPATH", ""))
-			PY
-
-    - name: Upload logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: logs-py${{ matrix.python-version }}
-        path: |
-          nose2.log
-          coverage.log
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-py${{ matrix.python-version }}
+          path: |
+            nose2.log
+            coverage.log

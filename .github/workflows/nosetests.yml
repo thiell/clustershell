@@ -67,13 +67,27 @@ jobs:
         ssh 127.0.0.2 which hostname
         ssh 127.0.0.2 hostname
 
-    - name: Run tests (nose2 + coverage) (capture output)
-      id: tests
+    - name: Debug nose2 discovery
+      run: |
+        set -euxo pipefail
+        python - <<'PY'
+        import os
+        print("cwd:", os.getcwd())
+        print("tests dir exists:", os.path.isdir("tests"))
+        for root, dirs, files in os.walk("tests"):
+          for f in sorted(files)[:50]:
+            if f.endswith(".py"):
+              print(os.path.join(root, f))
+          break
+        PY
+        nose2 -v --collect-only -s tests
+
+    - name: Run tests (nose2 + coverage)
       run: |
         set -euxo pipefail
         python -VV
         rm -f .coverage .coverage.* || true
-        nose2 -v -s tests --with-coverage --coverage ClusterShell 2>&1 | tee nose2.log
+        nose2 2>&1 | tee nose2.log
 
     - name: Debug (packaging versions)
       if: always()

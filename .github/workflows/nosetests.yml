@@ -1,4 +1,4 @@
-name: ClusterShell nosetests
+name: ClusterShell nose2
 
 on: [push, pull_request, merge_group]
 
@@ -32,6 +32,28 @@ jobs:
       run: |
         set -euxo pipefail
         pip install -v nose2 coverage
+
+    - name: Ensure tests/ is importable (nose2/unittest discovery)
+      run: |
+        set -euxo pipefail
+        test -d tests
+        test -f tests/__init__.py || : > tests/__init__.py
+        ls -la tests/__init__.py
+
+    - name: Write unittest.cfg (nose2 discovery config)
+      run: |
+        set -euxo pipefail
+        cat > unittest.cfg <<'EOF'
+        [nose2]
+        start-dir = tests
+        top-level-directory = .
+        verbosity = 2
+
+        [discovery]
+        pattern = *Test.py
+        EOF
+        echo "=== unittest.cfg ==="
+        cat unittest.cfg
 
     - name: Allow us to SSH passwordless to localhost
       run: |
@@ -67,7 +89,7 @@ jobs:
         ssh 127.0.0.2 which hostname
         ssh 127.0.0.2 hostname
 
-    - name: Debug unittest discovery (nose2 equivalent of collect)
+    - name: Debug unittest discovery (pre-flight)
       run: |
         set -euxo pipefail
         python - <<'PY'
@@ -75,9 +97,7 @@ jobs:
 
         loader = unittest.TestLoader()
         suite = loader.discover("tests", pattern="*Test.py", top_level_dir=".")
-        tests = list(unittest.TestSuite(suite))
 
-        # Count tests
         def iter_tests(s):
           for t in s:
             if isinstance(t, unittest.TestSuite):
@@ -87,8 +107,6 @@ jobs:
 
         flat = list(iter_tests(suite))
         print("discovered test cases:", len(flat))
-
-        # Print first N test ids for sanity
         for t in flat[:50]:
           try:
             print(t.id())
@@ -96,12 +114,18 @@ jobs:
             print("un-id-able test:", t, e)
         PY
 
-    - name: Run tests (nose2) WITHOUT coverage (to see real import errors)
+    - name: Run tests (coverage + nose2, explicit config) (capture output)
+      id: tests
       run: |
         set -euxo pipefail
-        nose2 -v -s tests -t . --log-level DEBUG 2>&1 | tee nose2-nocov.log
+        python -VV
+        rm -f .coverage .coverage.* || true
+        coverage run --branch --source=ClusterShell -m nose2 \
+          --config unittest.cfg --no-user-config \
+          -v -s tests -t . 2>&1 | tee nose2.log
+        coverage report -m --fail-under=0 2>&1 | tee coverage.log
 
-    - name: Debug (packaging versions)
+    - name: Debug (environment + packaging)
       if: always()
       run: |
         set -euxo pipefail
@@ -111,6 +135,12 @@ jobs:
         python -m pip debug -v
         python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
         python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
+        echo "=== repo root listing ==="
+        pwd
+        ls -la
+        echo "=== unittest.cfg ==="
+        ls -la unittest.cfg
+        cat unittest.cfg
 
     - name: Upload logs
       if: always()
@@ -119,3 +149,4 @@ jobs:
         name: logs-py${{ matrix.python-version }}
         path: |
           nose2.log
+          coverage.log

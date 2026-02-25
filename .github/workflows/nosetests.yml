@@ -82,55 +82,59 @@ jobs:
         ssh 127.0.0.2 which hostname
         ssh 127.0.0.2 hostname
 
-    - name: Debug unittest discovery (pre-flight)
-      run: |
-        set -euxo pipefail
-        export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
-        python - <<'PY'
-        import unittest
+	- name: Debug unittest discovery (pre-flight)
+	  run: |
+		set -euxo pipefail
+		export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
+		python - <<'PY'
+		import unittest
+		suite = unittest.TestLoader().discover("tests", pattern="*Test.py", top_level_dir=".")
+		count = 0
+		def walk(s):
+		  nonlocal count
+		  for t in s:
+			if isinstance(t, unittest.TestSuite):
+			  walk(t)
+			else:
+			  count += 1
+		walk(suite)
+		print("unittest discovered:", count)
+		PY
 
-        loader = unittest.TestLoader()
-        suite = loader.discover("tests", pattern="*Test.py", top_level_dir=".")
+	- name: Run tests (coverage + nose2, explicit config) (capture output)
+	  run: |
+		set -euxo pipefail
+		python -VV
+		pwd
+		ls -la unittest.cfg
+		echo "=== unittest.cfg ==="
+		cat unittest.cfg
 
-        def iter_tests(s):
-          for t in s:
-            if isinstance(t, unittest.TestSuite):
-              yield from iter_tests(t)
-            else:
-              yield t
+		export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
+		rm -f .coverage .coverage.* || true
 
-        flat = list(iter_tests(suite))
-        print("discovered test cases:", len(flat))
-        for t in flat[:30]:
-          print(getattr(t, "id", lambda: repr(t))())
-        PY
+		# Run with DEBUG to confirm config+plugin activation
+		coverage run --branch --source=ClusterShell -m nose2 \
+		  --config unittest.cfg --no-user-config \
+		  --log-level DEBUG \
+		  -v 2>&1 | tee nose2.log
 
-    - name: Run tests (coverage + nose2, explicit config) (capture output)
-      id: tests
-      run: |
-        set -euxo pipefail
-        python -VV
-        export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
-        rm -f .coverage .coverage.* || true
-        coverage run --branch --source=ClusterShell -m nose2 \
-          --config unittest.cfg --no-user-config \
-          -v -s tests -t . 2>&1 | tee nose2.log
-        coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
+		coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
 
-    - name: Debug (environment + packaging)
-      if: always()
-      run: |
-        set -euxo pipefail
-        python -VV
-        which python
-        python -m pip -V
-        python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
-        python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
-        echo "=== PYTHONPATH ==="
-        python - <<'PY'
-        import os
-        print(os.environ.get("PYTHONPATH", ""))
-        PY
+		- name: Debug (environment + packaging)
+		  if: always()
+		  run: |
+			set -euxo pipefail
+			python -VV
+			which python
+			python -m pip -V
+			python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
+			python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
+			echo "=== PYTHONPATH ==="
+			python - <<'PY'
+			import os
+			print(os.environ.get("PYTHONPATH", ""))
+			PY
 
     - name: Upload logs
       if: always()

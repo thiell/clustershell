@@ -111,3 +111,10 @@ jobs:
           }
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    - name: Debug packaging versions
+      if: always()
+      run: |
+        python -V
+        python -m pip -V
+        python -m pip show importlib-metadata importlib_metadata nose nose-py3 setuptools
+        python -m pip freeze | egrep -i '^(importlib-metadata|importlib_metadata|nose|nose-py3|setuptools)=' || true

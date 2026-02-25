@@ -15,184 +15,81 @@ jobs:
     name: Tests with Python ${{ matrix.python-version }}
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5.2.0
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install ClusterShell
       run: |
         set -euxo pipefail
         python -m pip install --upgrade pip
-        python -m pip --version
-        python -m pip install -v .
-    - name: Install test deps (nose) with compatible setuptools
+        python -m pip -V
+        pip install -v .
+
+    - name: Install test deps (nose2 + coverage)
       run: |
         set -euxo pipefail
-        python -m pip install -v --upgrade "setuptools<70"
-        python -m pip install -v coverage nose-py3
+        pip install -v nose2 coverage
+
     - name: Allow us to SSH passwordless to localhost
       run: |
+        set -euxo pipefail
         chmod og-rw ~
         ssh-keygen -f ~/.ssh/id_rsa -N ""
         cp ~/.ssh/{id_rsa.pub,authorized_keys}
+
     - name: Avoid ssh "known hosts" warnings
       run: |
+        set -euxo pipefail
         printf '%s\n    %s\n    %s\n' 'Host *' 'StrictHostKeyChecking no' 'LogLevel ERROR' >> ~/.ssh/config
+
     - name: Set Python paths when sshing for gateway tests
       run: |
+        set -euxo pipefail
         sed -i "1iexport CLUSTERSHELL_GW_PYTHON_EXECUTABLE=$(which python)" ~/.bashrc
         sed -i "2iexport PYTHONPATH=\$PYTHONPATH:$(realpath $pythonLocation/lib/python*/site-packages)" ~/.bashrc
         head -2 ~/.bashrc
+
     - name: Install pdsh to test WorkerPdsh
       run: |
+        set -euxo pipefail
+        sudo apt-get update
         sudo apt-get -y install pdsh
         sudo sh -c 'echo ssh > /etc/pdsh/rcmd_default'
+
     - name: Add tests/bin to remote PATH
       run: |
+        set -euxo pipefail
         sed -i "1iexport PATH=$PWD/tests/bin:\$PATH" ~/.bashrc
         head -1 ~/.bashrc
         ssh 127.0.0.2 which hostname
         ssh 127.0.0.2 hostname
-    - name: Post to Slack (start)
-      continue-on-error: true
-      id: slack-start
-      uses: slackapi/slack-github-action@v1.24.0
-      with:
-        channel-id: 'C07GRMDK3'
-        payload: |
-          {
-            "text": "${{ github.workflow }}: Python ${{ matrix.python-version }} tests started (In Progress)",
-            "attachments": [
-              {
-                "color": "#ECB32D",
-                "fields": [
-                  {
-                    "title": "Branch",
-                    "short": true,
-                    "value": "${{ github.ref }}"
-                  },
-                  {
-                    "title": "Actor",
-                    "short": true,
-                    "value": "${{ github.actor }}"
-                  }
-                ]
-              }
-            ]
-          }
-      env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
-    - name: Debug (environment + import/entrypoints)
+    - name: Run tests (nose2 + coverage) (capture output)
+      id: tests
+      run: |
+        set -euxo pipefail
+        python -VV
+        rm -f .coverage .coverage.* || true
+        nose2 -v -s tests --with-coverage --coverage ClusterShell 2>&1 | tee nose2.log
+
+    - name: Debug (packaging versions)
       if: always()
       run: |
         set -euxo pipefail
-
-        echo "=== Python / pip ==="
         python -VV
         which python
         python -m pip -V
         python -m pip debug -v
+        python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
+        python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
 
-        echo "=== Key packages (pip show) ==="
-        python -m pip show ClusterShell setuptools wheel pip coverage nose nose-py3 importlib-metadata importlib_metadata || true
-
-        echo "=== Relevant freeze ==="
-        python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose|nose-py3|importlib-metadata|importlib_metadata)=' || true
-
-        echo "=== Where nosetests comes from ==="
-        command -v nosetests || true
-        ls -l "$(command -v nosetests)" || true
-        head -n 40 "$(command -v nosetests)" || true
-
-        echo "=== importlib_metadata / entry_points API shape ==="
-        python - <<'PY'
-        import sys, inspect
-        print("sys.version:", sys.version)
-
-        # Try stdlib first (py>=3.10 has importlib.metadata)
-        try:
-          import importlib.metadata as im
-          print("importlib.metadata:", im.__file__)
-          print("entry_points sig:", inspect.signature(im.entry_points))
-        except Exception as e:
-          print("importlib.metadata import failed:", repr(e))
-
-        # Try backport
-        try:
-          import importlib_metadata as ib
-          print("importlib_metadata:", getattr(ib, "__file__", ib))
-          print("entry_points sig:", inspect.signature(ib.entry_points))
-        except Exception as e:
-          print("importlib_metadata import failed:", repr(e))
-        PY
-
-        echo "=== Which distribution provides importlib_metadata module ==="
-        python - <<'PY'
-        import pkgutil, sys
-        m = pkgutil.find_loader("importlib_metadata")
-        print("loader:", m)
-        if m:
-          mod = m.load_module()  # legacy but fine for debug
-          print("module file:", getattr(mod, "__file__", None))
-          print("module version attr:", getattr(mod, "__version__", None))
-        PY
-
-        echo "=== Entry points visible to this env (if API supports it) ==="
-        python - <<'PY'
-        try:
-          import importlib.metadata as md
-          eps = md.entry_points()
-          # py>=3.10 returns object with .select()
-          if hasattr(eps, "select"):
-            print("has .select(); groups sample:", sorted({e.group for e in eps})[:20])
-            print("nose.plugins entrypoints:", list(eps.select(group="nose.plugins.0.10")))
-          else:
-            print("no .select(); type:", type(eps), "len:", len(eps))
-        except Exception as e:
-          print("entry_points debug failed:", repr(e))
-        PY
-
-    - name: Run tests
-      id: tests
-      run: |
-        python --version
-        export CLUSTERSHELL_GW_PYTHON_EXECUTABLE=$(which python)
-        nosetests -v --all-modules --with-coverage --cover-tests --cover-erase --cover-package=ClusterShell tests
-    - name: Post to Slack (end)
+    - name: Upload logs
       if: always()
-      continue-on-error: true
-      id: slack-end
-      uses: slackapi/slack-github-action@v1.24.0
+      uses: actions/upload-artifact@v4
       with:
-        channel-id: 'C07GRMDK3'
-        update-ts: ${{ steps.slack-start.outputs.ts }}
-        payload: |
-          {
-            "text": "${{ github.workflow }}: Python ${{ matrix.python-version }} tests completed",
-            "attachments": [
-              {
-                "fields": [
-                  {
-                    "title": "Branch",
-                    "short": true,
-                    "value": "${{ github.ref }}"
-                  },
-                  {
-                    "title": "Status",
-                    "short": true,
-                    "value": "${{ job.status }}"
-                  }
-                ]
-              }
-            ]
-          }
-      env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    - name: Debug packaging versions
-      if: always()
-      run: |
-        python -V
-        python -m pip -V
-        python -m pip show importlib-metadata importlib_metadata nose nose-py3 setuptools
-        python -m pip freeze | egrep -i '^(importlib-metadata|importlib_metadata|nose|nose-py3|setuptools)=' || true
+        name: logs-py${{ matrix.python-version }}
+        path: |
+          nose2.log

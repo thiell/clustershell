@@ -109,10 +109,8 @@ jobs:
           python -VV
           export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
           rm -f .coverage .coverage.* || true
-          coverage run --branch --source=ClusterShell -m nose2 \
-            --config unittest.cfg --no-user-config \
-            --log-level DEBUG \
-            -v -s tests -t . 2>&1 | tee nose2.log
+          coverage run --branch --source=ClusterShell -m unittest discover \
+            -s tests -p '*Test.py' -t . -v 2>&1 | tee unittest.log
           coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
 
       - name: Debug (environment + packaging)

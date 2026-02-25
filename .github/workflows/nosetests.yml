@@ -19,10 +19,17 @@ jobs:
       uses: actions/setup-python@v5.2.0
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install ClusterShell
       run: |
+        set -euxo pipefail
         python -m pip install --upgrade pip
-        pip install coverage nose-py3 .
+        python -m pip --version
+        python -m pip install -v .
+    - name: Install test deps (nose) with compatible setuptools
+      run: |
+        set -euxo pipefail
+        python -m pip install -v --upgrade "setuptools<70"
+        python -m pip install -v coverage nose-py3
     - name: Allow us to SSH passwordless to localhost
       run: |
         chmod og-rw ~
@@ -75,6 +82,77 @@ jobs:
           }
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+    - name: Debug (environment + import/entrypoints)
+      if: always()
+      run: |
+        set -euxo pipefail
+
+        echo "=== Python / pip ==="
+        python -VV
+        which python
+        python -m pip -V
+        python -m pip debug -v
+
+        echo "=== Key packages (pip show) ==="
+        python -m pip show ClusterShell setuptools wheel pip coverage nose nose-py3 importlib-metadata importlib_metadata || true
+
+        echo "=== Relevant freeze ==="
+        python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose|nose-py3|importlib-metadata|importlib_metadata)=' || true
+
+        echo "=== Where nosetests comes from ==="
+        command -v nosetests || true
+        ls -l "$(command -v nosetests)" || true
+        head -n 40 "$(command -v nosetests)" || true
+
+        echo "=== importlib_metadata / entry_points API shape ==="
+        python - <<'PY'
+        import sys, inspect
+        print("sys.version:", sys.version)
+
+        # Try stdlib first (py>=3.10 has importlib.metadata)
+        try:
+          import importlib.metadata as im
+          print("importlib.metadata:", im.__file__)
+          print("entry_points sig:", inspect.signature(im.entry_points))
+        except Exception as e:
+          print("importlib.metadata import failed:", repr(e))
+
+        # Try backport
+        try:
+          import importlib_metadata as ib
+          print("importlib_metadata:", getattr(ib, "__file__", ib))
+          print("entry_points sig:", inspect.signature(ib.entry_points))
+        except Exception as e:
+          print("importlib_metadata import failed:", repr(e))
+        PY
+
+        echo "=== Which distribution provides importlib_metadata module ==="
+        python - <<'PY'
+        import pkgutil, sys
+        m = pkgutil.find_loader("importlib_metadata")
+        print("loader:", m)
+        if m:
+          mod = m.load_module()  # legacy but fine for debug
+          print("module file:", getattr(mod, "__file__", None))
+          print("module version attr:", getattr(mod, "__version__", None))
+        PY
+
+        echo "=== Entry points visible to this env (if API supports it) ==="
+        python - <<'PY'
+        try:
+          import importlib.metadata as md
+          eps = md.entry_points()
+          # py>=3.10 returns object with .select()
+          if hasattr(eps, "select"):
+            print("has .select(); groups sample:", sorted({e.group for e in eps})[:20])
+            print("nose.plugins entrypoints:", list(eps.select(group="nose.plugins.0.10")))
+          else:
+            print("no .select(); type:", type(eps), "len:", len(eps))
+        except Exception as e:
+          print("entry_points debug failed:", repr(e))
+        PY
+
     - name: Run tests
       id: tests
       run: |

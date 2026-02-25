@@ -40,19 +40,10 @@ jobs:
           test -f tests/__init__.py || : > tests/__init__.py
           ls -la tests/__init__.py
 
-      - name: Ensure unittest.cfg is correct (nose2 discovery)
+      - name: Ensure unittest.cfg exists (debug)
         run: |
           set -euxo pipefail
-          cat > unittest.cfg <<'EOF'
-          [nose2]
-          start-dir = tests
-          top-level-directory = .
-          verbosity = 2
-          plugins = nose2.plugins.loader.discovery
-
-          [discovery]
-          pattern = *Test.py
-          EOF
+          test -f unittest.cfg
           echo "=== unittest.cfg ==="
           cat unittest.cfg
 
@@ -96,8 +87,10 @@ jobs:
           export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
           python - <<'PY'
           import unittest
+
           suite = unittest.TestLoader().discover("tests", pattern="*Test.py", top_level_dir=".")
           count = 0
+
           def walk(s):
               global count
               for t in s:
@@ -105,21 +98,22 @@ jobs:
                       walk(t)
                   else:
                       count += 1
+
           walk(suite)
           print("unittest discovered:", count)
           PY
 
-	  - name: Run tests (coverage + nose2)
-		run: |
-		  set -euxo pipefail
-		  python -VV
-		  export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
-		  rm -f .coverage .coverage.* || true
-		  coverage run --branch --source=ClusterShell -m nose2 \
-			--config unittest.cfg --no-user-config \
-			--log-level DEBUG \
-			-v -s tests -t . 2>&1 | tee nose2.log
-		  coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
+      - name: Run tests (coverage + nose2) (capture output)
+        run: |
+          set -euxo pipefail
+          python -VV
+          export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
+          rm -f .coverage .coverage.* || true
+          coverage run --branch --source=ClusterShell -m nose2 \
+            --config unittest.cfg --no-user-config \
+            --log-level DEBUG \
+            -v -s tests -t . 2>&1 | tee nose2.log
+          coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
 
       - name: Debug (environment + packaging)
         if: always()

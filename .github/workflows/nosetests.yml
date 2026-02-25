@@ -1,4 +1,4 @@
-name: ClusterShell nose2
+name: ClusterShell tests (nose2)
 
 on: [push, pull_request, merge_group]
 
@@ -33,25 +33,18 @@ jobs:
         set -euxo pipefail
         pip install -v nose2 coverage
 
-    - name: Ensure tests/ is importable (nose2/unittest discovery)
+    - name: Ensure tests/ is importable for nose2 discovery
       run: |
         set -euxo pipefail
         test -d tests
+        # Required by unittest/nose2 discovery in many setups
         test -f tests/__init__.py || : > tests/__init__.py
         ls -la tests/__init__.py
 
-    - name: Write unittest.cfg (nose2 discovery config)
+    - name: Show unittest.cfg (debug)
       run: |
         set -euxo pipefail
-        cat > unittest.cfg <<'EOF'
-        [nose2]
-        start-dir = tests
-        top-level-directory = .
-        verbosity = 2
-
-        [discovery]
-        pattern = *Test.py
-        EOF
+        test -f unittest.cfg
         echo "=== unittest.cfg ==="
         cat unittest.cfg
 
@@ -92,6 +85,7 @@ jobs:
     - name: Debug unittest discovery (pre-flight)
       run: |
         set -euxo pipefail
+        export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
         python - <<'PY'
         import unittest
 
@@ -107,11 +101,8 @@ jobs:
 
         flat = list(iter_tests(suite))
         print("discovered test cases:", len(flat))
-        for t in flat[:50]:
-          try:
-            print(t.id())
-          except Exception as e:
-            print("un-id-able test:", t, e)
+        for t in flat[:30]:
+          print(getattr(t, "id", lambda: repr(t))())
         PY
 
     - name: Run tests (coverage + nose2, explicit config) (capture output)
@@ -119,11 +110,12 @@ jobs:
       run: |
         set -euxo pipefail
         python -VV
+        export PYTHONPATH="$PWD/tests:$PWD:${PYTHONPATH:-}"
         rm -f .coverage .coverage.* || true
         coverage run --branch --source=ClusterShell -m nose2 \
           --config unittest.cfg --no-user-config \
           -v -s tests -t . 2>&1 | tee nose2.log
-        coverage report -m --fail-under=0 2>&1 | tee coverage.log
+        coverage report -m --fail-under=0 2>&1 | tee coverage.log || true
 
     - name: Debug (environment + packaging)
       if: always()
@@ -132,15 +124,13 @@ jobs:
         python -VV
         which python
         python -m pip -V
-        python -m pip debug -v
         python -m pip show ClusterShell setuptools wheel pip coverage nose2 || true
         python -m pip freeze --all | sort | egrep -i '^(clustershell|setuptools|wheel|pip|coverage|nose2)=' || true
-        echo "=== repo root listing ==="
-        pwd
-        ls -la
-        echo "=== unittest.cfg ==="
-        ls -la unittest.cfg
-        cat unittest.cfg
+        echo "=== PYTHONPATH ==="
+        python - <<'PY'
+        import os
+        print(os.environ.get("PYTHONPATH", ""))
+        PY
 
     - name: Upload logs
       if: always()

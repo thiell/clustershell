@@ -101,7 +101,7 @@ jobs:
         set -euxo pipefail
         python -VV
         rm -f .coverage .coverage.* || true
-        nose2 2>&1 | tee nose2.log
+        nose2 -v -s tests -t . 2>&1 | tee nose2.log
 
     - name: Debug (packaging versions)
       if: always()

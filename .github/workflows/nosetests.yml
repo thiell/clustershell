@@ -67,20 +67,34 @@ jobs:
         ssh 127.0.0.2 which hostname
         ssh 127.0.0.2 hostname
 
-    - name: Debug nose2 discovery
+    - name: Debug unittest discovery (nose2 equivalent of collect)
       run: |
         set -euxo pipefail
         python - <<'PY'
-        import os
-        print("cwd:", os.getcwd())
-        print("tests dir exists:", os.path.isdir("tests"))
-        for root, dirs, files in os.walk("tests"):
-          for f in sorted(files)[:50]:
-            if f.endswith(".py"):
-              print(os.path.join(root, f))
-          break
+        import unittest
+
+        loader = unittest.TestLoader()
+        suite = loader.discover("tests", pattern="*Test.py", top_level_dir=".")
+        tests = list(unittest.TestSuite(suite))
+
+        # Count tests
+        def iter_tests(s):
+          for t in s:
+            if isinstance(t, unittest.TestSuite):
+              yield from iter_tests(t)
+            else:
+              yield t
+
+        flat = list(iter_tests(suite))
+        print("discovered test cases:", len(flat))
+
+        # Print first N test ids for sanity
+        for t in flat[:50]:
+          try:
+            print(t.id())
+          except Exception as e:
+            print("un-id-able test:", t, e)
         PY
-        nose2 -v --collect-only -s tests
 
     - name: Run tests (nose2 + coverage)
       run: |

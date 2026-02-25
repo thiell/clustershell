@@ -96,12 +96,10 @@ jobs:
             print("un-id-able test:", t, e)
         PY
 
-    - name: Run tests (nose2 + coverage)
+    - name: Run tests (nose2) WITHOUT coverage (to see real import errors)
       run: |
         set -euxo pipefail
-        python -VV
-        rm -f .coverage .coverage.* || true
-        nose2 -v -s tests -t . 2>&1 | tee nose2.log
+        nose2 -v -s tests -t . --log-level DEBUG 2>&1 | tee nose2-nocov.log
 
     - name: Debug (packaging versions)
       if: always()

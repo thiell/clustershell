@@ -680,6 +680,38 @@ Example of use with :ref:`cluset-tool`::
 
 .. highlight:: text
 
+.. _group-ansible-bindings:
+
+Ansible inventory group bindings
+"""""""""""""""""""""""""""""""""
+
+Enable Ansible inventory group bindings by renaming the example configuration
+file usually installed as
+``/etc/clustershell/groups.conf.d/ansible.conf.example`` to ``ansible.conf``.
+
+**Requirements**: ``ansible-core`` (provides the ``ansible-inventory`` command)
+and ``jq``.
+
+The section **ansible** defines a group source backed by Ansible inventory.
+Each upcall command uses ``ANSIBLE_INVENTORY`` as an inline environment variable
+prefix so that multiple inventory sources (comma-separated paths) are supported.
+The default path defined in the configuration file is used as a fallback when
+``$ANSIBLE_INVENTORY`` is not set in the environment::
+
+    ANSIBLE_INVENTORY="${ANSIBLE_INVENTORY:-/path/to/inventory}" ansible-inventory --list ...
+
+.. highlight:: console
+
+Example of use with :ref:`nodeset-tool` on a cluster managed with Ansible::
+
+    $ nodeset -s ansible -l
+    @all
+    @db
+    @web
+    $ clush -w @ansible:web uptime
+
+.. highlight:: text
+
 .. _defaults-config:
 
 Library Defaults

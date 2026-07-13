@@ -54,6 +54,13 @@ a basic usage of the :class:`.NodeSet` class::
     >>> print(NodeSet.fromlist(["clu-1-[1-4]", "clu-2-[1-4]"]))
     clu-[1-2]-[1-4]
 
+You can also iterate over the nodes one at a time::
+
+    >>> nodeset = NodeSet("node[1-3]")
+    >>> it = iter(nodeset)
+    >>> print it.next()
+    node1
+
 All corresponding Python sets operations are available, for example::
 
     >>> from ClusterShell.NodeSet import NodeSet

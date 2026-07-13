@@ -62,7 +62,7 @@ from ClusterShell.RangeSet import RangeSet, RangeSetND, AUTOSTEP_DISABLED
 from ClusterShell.RangeSet import RangeSetParseError
 
 
-# Python 3 compatibility
+# Python 2 compat: basestring alias, drop this block when py2 support ends (1.11)
 try:
     basestring
 except NameError:
@@ -712,9 +712,12 @@ class NodeSetBase(object):
             return NotImplemented
         return self.difference(other)
 
-    def difference_update(self, other, strict=False):
+    def difference_update(self, other, purge=True, strict=False):
         """
         ``s.difference_update(t)`` removes from s all the elements found in t.
+
+        If purge is False, patterns emptied by the operation are kept as
+        empty entries instead of being removed.
 
         :raises KeyError: an element cannot be removed (only if strict is
             True)
@@ -740,8 +743,9 @@ class NodeSetBase(object):
                 elif strict:
                     raise KeyError(pat)
 
-        for pat in purge_patterns:
-            del self._patterns[pat]
+        if purge:
+            for pat in purge_patterns:
+                del self._patterns[pat]
 
     def __isub__(self, other):
         """
